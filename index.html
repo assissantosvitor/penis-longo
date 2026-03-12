@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Meu Primeiro Jogo HTML5</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #222; }
+        canvas { display: block; background: #87CEEB; margin: 0 auto; }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Ajuste do tamanho da tela
+canvas.width = 800;
+canvas.height = 400;
+
+// Configurações do Personagem
+const player = {
+    x: 50,
+    y: 300,
+    width: 40,
+    height: 40,
+    color: "#FF5733",
+    dy: 0,          // Velocidade vertical
+    jumpForce: 12,  // Força do pulo
+    gravity: 0.6,   // Gravidade
+    speed: 5,       // Velocidade de movimento
+    grounded: false
+};
+
+// Configurações do Chão
+const ground = {
+    y: 350,
+    height: 50
+};
+
+// Controle de teclas
+const keys = {};
+window.addEventListener("keydown", e => keys[e.code] = true);
+window.addEventListener("keyup", e => keys[e.code] = false);
+
+function update() {
+    // Movimento Lateral
+    if (keys["ArrowRight"]) player.x += player.speed;
+    if (keys["ArrowLeft"]) player.x -= player.speed;
+
+    // Pulo (Só pula se estiver no chão)
+    if (keys["Space"] && player.grounded) {
+        player.dy = -player.jumpForce;
+        player.grounded = false;
+    }
+
+    // Aplicação da Gravidade
+    player.dy += player.gravity;
+    player.y += player.dy;
+
+    // Colisão com o Chão
+    if (player.y + player.height > ground.y) {
+        player.y = ground.y - player.height;
+        player.dy = 0;
+        player.grounded = true;
+    }
+
+    // Limites da tela
+    if (player.x < 0) player.x = 0;
+    if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+}
+
+function draw() {
+    // Limpar a tela
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Desenhar Chão
+    ctx.fillStyle = "#2ECC71";
+    ctx.fillRect(0, ground.y, canvas.width, ground.height);
+
+    // Desenhar Personagem
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop(); // Inicia o jogo
+</script>
+
+</body>
+</html>
