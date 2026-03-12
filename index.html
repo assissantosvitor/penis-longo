@@ -2,10 +2,10 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Jogo com Personagem Detalhado</title>
+    <title>Minecraft HTML5 Edition</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
-        canvas { background: linear-gradient(#4facfe 0%, #00f2fe 100%); border: 4px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        body { margin: 0; padding: 0; overflow: hidden; background: #87CEEB; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
@@ -16,95 +16,117 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-canvas.width = 800;
-canvas.height = 400;
+// Ajuste para Tela Cheia
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
 
 const player = {
     x: 100,
-    y: 200,
+    y: 100,
     width: 30,
     height: 60,
     dy: 0,
-    jumpForce: 12,
-    gravity: 0.6,
-    speed: 5,
+    jumpForce: 15,
+    gravity: 0.7,
+    speed: 6,
     grounded: false,
-    direction: 1, // 1 para direita, -1 para esquerda
-    walkCycle: 0  // Para animar os braços/pernas
+    direction: 1,
+    walkCycle: 0
 };
 
-const ground = { y: 350, height: 50 };
-const keys = {};
+// Configurações do Mundo
+const world = {
+    grassHeight: 40,
+    dirtDepth: 120, // Profundidade da terra antes da pedra
+};
 
+const keys = {};
 window.addEventListener("keydown", e => keys[e.code] = true);
 window.addEventListener("keyup", e => keys[e.code] = false);
 
-function drawPlayer(p) {
-    ctx.save();
-    ctx.translate(p.x + p.width/2, p.y + p.height/2);
+// Função para desenhar o solo estilo Minecraft
+function drawWorld() {
+    const groundY = canvas.height - 200; // Onde o chão começa
+
+    // 1. Camada de Grama (Verde)
+    ctx.fillStyle = "#5ea832";
+    ctx.fillRect(0, groundY, canvas.width, 20);
+
+    // 2. Camada de Terra (Marrom)
+    ctx.fillStyle = "#855d32";
+    ctx.fillRect(0, groundY + 20, canvas.width, world.dirtDepth);
     
-    // Inverte o desenho se estiver olhando para a esquerda
-    if (p.direction === -1) ctx.scale(-1, 1);
+    // Detalhes da terra (manchas escuras)
+    ctx.fillStyle = "#6b4a28";
+    for(let i = 0; i < canvas.width; i += 40) {
+        for(let j = groundY + 30; j < groundY + world.dirtDepth; j += 40) {
+            if((i+j) % 3 === 0) ctx.fillRect(i, j, 15, 15);
+        }
+    }
 
-    const t = p.walkCycle;
-    const breathe = Math.sin(Date.now() / 200) * 2; // Efeito de respiração
+    // 3. Camada de Pedra (Cinza)
+    const stoneY = groundY + 20 + world.dirtDepth;
+    ctx.fillStyle = "#7d7d7d";
+    ctx.fillRect(0, stoneY, canvas.width, canvas.height - stoneY);
 
-    // 1. Pernas / Calça (Azul)
-    ctx.fillStyle = "#2c3e50";
-    ctx.fillRect(-10, 10, 8, 20); // Perna esquerda
-    ctx.fillRect(2, 10, 8, 20);  // Perna direita
+    // Detalhes da pedra e "Minérios"
+    for(let i = 0; i < canvas.width; i += 60) {
+        for(let j = stoneY + 10; j < canvas.height; j += 50) {
+            ctx.fillStyle = (i+j) % 7 === 0 ? "#555" : "#8a8a8a"; // Pedras mais escuras
+            ctx.fillRect(i + (j%10), j, 20, 20);
+            
+            // "Carvão" raro
+            if((i*j) % 13 === 0) {
+                ctx.fillStyle = "#222";
+                ctx.fillRect(i+5, j+5, 8, 8);
+            }
+        }
+    }
+}
 
-    // 2. Sapatos
-    ctx.fillStyle = "#333";
-    ctx.fillRect(-11, 28, 10, 5);
-    ctx.fillRect(1, 28, 10, 5);
+function drawPlayer() {
+    ctx.save();
+    ctx.translate(player.x + player.width/2, player.y + player.height/2);
+    if (player.direction === -1) ctx.scale(-1, 1);
 
-    // 3. Corpo / Camisa (Verde)
-    ctx.fillStyle = "#27ae60";
+    const breathe = Math.sin(Date.now() / 200) * 2;
+
+    // Pernas (Azul Jeans)
+    ctx.fillStyle = "#3c44aa";
+    ctx.fillRect(-10, 10, 8, 20); 
+    ctx.fillRect(2, 10, 8, 20);  
+
+    // Camisa (Azul Ciano clássico do Steve)
+    ctx.fillStyle = "#00a7a3";
     ctx.fillRect(-12, -15 + breathe, 24, 25); 
 
-    // 4. Braços
-    ctx.fillStyle = "#e0ac69"; // Cor da pele
-    let armSwing = Math.sin(t) * 10;
-    ctx.fillRect(-15, -12 + breathe, 6, 15); // Braço atrás
-    ctx.fillRect(9, -12 + breathe, 6, 15);  // Braço frente
-
-    // 5. Cabeça
+    // Braços
     ctx.fillStyle = "#e0ac69";
-    ctx.fillRect(-8, -32 + breathe, 16, 18);
+    ctx.fillRect(-15, -12 + breathe, 6, 20); 
+    ctx.fillRect(9, -12 + breathe, 6, 20);  
 
-    // 6. Cabelo
+    // Cabeça
+    ctx.fillStyle = "#e0ac69";
+    ctx.fillRect(-10, -35 + breathe, 20, 20);
+
+    // Cabelo e Olhos
     ctx.fillStyle = "#4e342e";
-    ctx.fillRect(-9, -34 + breathe, 18, 7);
-
-    // 7. Olho
+    ctx.fillRect(-10, -35 + breathe, 20, 6); // Cabelo
     ctx.fillStyle = "white";
-    ctx.fillRect(2, -28 + breathe, 5, 5);
-    ctx.fillStyle = "black";
-    ctx.fillRect(5, -27 + breathe, 2, 2);
+    ctx.fillRect(3, -28 + breathe, 6, 4); // Olho
+    ctx.fillStyle = "#4e342e";
+    ctx.fillRect(6, -28 + breathe, 2, 2); // Pupila
 
     ctx.restore();
 }
 
 function update() {
-    let moving = false;
-
-    if (keys["ArrowRight"]) {
-        player.x += player.speed;
-        player.direction = 1;
-        moving = true;
-    }
-    if (keys["ArrowLeft"]) {
-        player.x -= player.speed;
-        player.direction = -1;
-        moving = true;
-    }
-
-    if (moving) {
-        player.walkCycle += 0.2;
-    } else {
-        player.walkCycle = 0;
-    }
+    if (keys["ArrowRight"]) { player.x += player.speed; player.direction = 1; }
+    if (keys["ArrowLeft"]) { player.x -= player.speed; player.direction = -1; }
 
     if (keys["Space"] && player.grounded) {
         player.dy = -player.jumpForce;
@@ -114,32 +136,28 @@ function update() {
     player.dy += player.gravity;
     player.y += player.dy;
 
-    if (player.y + player.height > ground.y) {
-        player.y = ground.y - player.height;
+    const groundLevel = canvas.height - 200;
+
+    if (player.y + player.height > groundLevel) {
+        player.y = groundLevel - player.height;
         player.dy = 0;
         player.grounded = true;
     }
 
-    // Limites
     if (player.x < 0) player.x = 0;
     if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
 }
 
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Chão (com grama)
-    ctx.fillStyle = "#2ecc71";
-    ctx.fillRect(0, ground.y, canvas.width, ground.height);
-    ctx.fillStyle = "#27ae60";
-    ctx.fillRect(0, ground.y, canvas.width, 5); // Linha da grama
-
-    drawPlayer(player);
-}
-
 function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Fundo do Céu
+    ctx.fillStyle = "#87CEEB";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    drawWorld();
     update();
-    draw();
+    drawPlayer();
     requestAnimationFrame(loop);
 }
 
